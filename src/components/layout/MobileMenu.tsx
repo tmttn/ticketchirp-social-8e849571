@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Home, Ticket, Scan, User, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export const MobileMenu = () => {
+interface MobileMenuProps {
+  signOut: () => Promise<void>;
+}
+
+export const MobileMenu = ({ signOut }: MobileMenuProps) => {
   const navigate = useNavigate();
   
   const menuItems = [
@@ -33,7 +37,7 @@ export const MobileMenu = () => {
         <Button
           variant="ghost"
           className="justify-start gap-3 px-2 text-destructive hover:text-destructive"
-          onClick={() => console.log('Logout')}
+          onClick={signOut}
         >
           <LogOut className="h-5 w-5" />
           Logout
