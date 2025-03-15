@@ -19,20 +19,25 @@ interface Profile {
   avatar_url?: string;
 }
 
-interface FollowStatsProps {
+export interface FollowStatsProps {
   userId: string;
+  followingCount?: number;
+  followersCount?: number;
 }
 
-export const FollowStats = ({ userId }: FollowStatsProps) => {
+export const FollowStats = ({ userId, followingCount: initialFollowingCount, followersCount: initialFollowersCount }: FollowStatsProps) => {
   const [activeTab, setActiveTab] = useState<'followers' | 'following'>('followers');
-  const [followingCount, setFollowingCount] = useState(0);
-  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(initialFollowingCount ?? 0);
+  const [followersCount, setFollowersCount] = useState(initialFollowersCount ?? 0);
   const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
   useEffect(() => {
-    fetchFollowCounts();
-  }, [userId]);
+    // Only fetch counts from Supabase if they weren't provided as props
+    if (initialFollowingCount === undefined || initialFollowersCount === undefined) {
+      fetchFollowCounts();
+    }
+  }, [userId, initialFollowingCount, initialFollowersCount]);
 
   const fetchFollowCounts = async () => {
     try {
