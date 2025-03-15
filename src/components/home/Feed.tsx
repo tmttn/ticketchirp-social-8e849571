@@ -1,13 +1,15 @@
 
 import { TicketCard } from './TicketCard';
+import { users } from '@/utils/userUtils';
 
+// Map our existing dummy data to use the user IDs from our user system
 const dummyData = [
   {
     id: '1',
     user: {
-      name: 'Alex Johnson',
-      avatar: 'https://i.pravatar.cc/150?img=1',
-      initials: 'AJ',
+      name: users['1'].name,
+      avatar: users['1'].avatar || 'https://i.pravatar.cc/150?img=1',
+      initials: users['1'].initials,
     },
     event: {
       title: 'Oppenheimer',
@@ -23,9 +25,9 @@ const dummyData = [
   {
     id: '2',
     user: {
-      name: 'Sarah Williams',
-      avatar: 'https://i.pravatar.cc/150?img=5',
-      initials: 'SW',
+      name: users['2'].name,
+      avatar: users['2'].avatar || 'https://i.pravatar.cc/150?img=5',
+      initials: users['2'].initials,
     },
     event: {
       title: 'Taylor Swift - The Eras Tour',
@@ -41,9 +43,9 @@ const dummyData = [
   {
     id: '3',
     user: {
-      name: 'Miguel Rodriguez',
-      avatar: 'https://i.pravatar.cc/150?img=12',
-      initials: 'MR',
+      name: users['3'].name,
+      avatar: users['3'].avatar || 'https://i.pravatar.cc/150?img=12',
+      initials: users['3'].initials,
     },
     event: {
       title: 'Hamilton',
@@ -59,9 +61,9 @@ const dummyData = [
   {
     id: '4',
     user: {
-      name: 'Emma Chen',
-      avatar: 'https://i.pravatar.cc/150?img=9',
-      initials: 'EC',
+      name: users['4'].name,
+      avatar: users['4'].avatar || 'https://i.pravatar.cc/150?img=9',
+      initials: users['4'].initials,
     },
     event: {
       title: 'Hamlet',

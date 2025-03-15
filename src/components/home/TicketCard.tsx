@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { FollowButton } from './FollowButton';
+import { FollowStats } from './FollowStats';
+import { users } from '@/utils/userUtils';
 
 interface TicketCardProps {
   id: string;
@@ -36,6 +39,13 @@ export const TicketCard = ({
 }: TicketCardProps) => {
   const [liked, setLiked] = useState(isLiked);
   const [likeCount, setLikeCount] = useState(likes);
+  
+  // Find matching user for follow stats
+  const userData = Object.values(users).find(u => u.name === user.name) || {
+    id: id,
+    followingCount: 0,
+    followersCount: 0
+  };
 
   const handleLike = () => {
     if (liked) {
@@ -71,13 +81,23 @@ export const TicketCard = ({
               <AvatarFallback>{user.initials}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm font-medium">{user.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium">{user.name}</p>
+                <FollowStats 
+                  userId={userData.id} 
+                  followingCount={userData.followingCount} 
+                  followersCount={userData.followersCount}
+                />
+              </div>
               <p className="text-xs text-muted-foreground">checked in at {event.venue}</p>
             </div>
           </div>
-          <Badge className={cn("capitalize", getEventTypeColor(event.type))}>
-            {event.type}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <FollowButton userId={userData.id} compact={true} />
+            <Badge className={cn("capitalize", getEventTypeColor(event.type))}>
+              {event.type}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-0">
