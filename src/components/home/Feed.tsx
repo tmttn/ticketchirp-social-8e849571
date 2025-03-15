@@ -11,7 +11,7 @@ const dummyData = [
     },
     event: {
       title: 'Oppenheimer',
-      type: 'movie',
+      type: 'movie' as const,
       image: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1625',
       date: 'Today at 7:30 PM',
       venue: 'AMC Theaters',
@@ -29,7 +29,7 @@ const dummyData = [
     },
     event: {
       title: 'Taylor Swift - The Eras Tour',
-      type: 'concert',
+      type: 'concert' as const,
       image: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=1740',
       date: 'Yesterday at 8:00 PM',
       venue: 'Madison Square Garden',
@@ -47,7 +47,7 @@ const dummyData = [
     },
     event: {
       title: 'Hamilton',
-      type: 'musical',
+      type: 'musical' as const,
       image: 'https://images.unsplash.com/photo-1503095396549-807759245b35?q=80&w=1742',
       date: '2 days ago',
       venue: 'Richard Rodgers Theatre',
@@ -65,7 +65,7 @@ const dummyData = [
     },
     event: {
       title: 'Hamlet',
-      type: 'theater',
+      type: 'theater' as const,
       image: 'https://images.unsplash.com/photo-1588693273928-92fa26159c88?q=80&w=1635',
       date: 'Last week',
       venue: 'The Old Globe',

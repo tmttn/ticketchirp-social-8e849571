@@ -4,6 +4,7 @@ import { Feed } from "@/components/home/Feed";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
+import { Ticket } from "lucide-react";
 
 const Home = () => {
   const navigate = useNavigate();
