@@ -1,88 +1,121 @@
 
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { TicketCard } from './TicketCard';
-import { users } from '@/utils/userUtils';
+import { Post } from '@/types/post';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Map our existing dummy data to use the user IDs from our user system
-const dummyData = [
-  {
-    id: '1',
-    user: {
-      name: users['1'].name,
-      avatar: users['1'].avatar || 'https://i.pravatar.cc/150?img=1',
-      initials: users['1'].initials,
-    },
-    event: {
-      title: 'Oppenheimer',
-      type: 'movie' as const,
-      image: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1625',
-      date: 'Today at 7:30 PM',
-      venue: 'AMC Theaters',
-    },
-    likes: 24,
-    comments: 3,
-    isLiked: false,
-  },
-  {
-    id: '2',
-    user: {
-      name: users['2'].name,
-      avatar: users['2'].avatar || 'https://i.pravatar.cc/150?img=5',
-      initials: users['2'].initials,
-    },
-    event: {
-      title: 'Taylor Swift - The Eras Tour',
-      type: 'concert' as const,
-      image: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=1740',
-      date: 'Yesterday at 8:00 PM',
-      venue: 'Madison Square Garden',
-    },
-    likes: 156,
-    comments: 42,
-    isLiked: true,
-  },
-  {
-    id: '3',
-    user: {
-      name: users['3'].name,
-      avatar: users['3'].avatar || 'https://i.pravatar.cc/150?img=12',
-      initials: users['3'].initials,
-    },
-    event: {
-      title: 'Hamilton',
-      type: 'musical' as const,
-      image: 'https://images.unsplash.com/photo-1503095396549-807759245b35?q=80&w=1742',
-      date: '2 days ago',
-      venue: 'Richard Rodgers Theatre',
-    },
-    likes: 87,
-    comments: 12,
-    isLiked: false,
-  },
-  {
-    id: '4',
-    user: {
-      name: users['4'].name,
-      avatar: users['4'].avatar || 'https://i.pravatar.cc/150?img=9',
-      initials: users['4'].initials,
-    },
-    event: {
-      title: 'Hamlet',
-      type: 'theater' as const,
-      image: 'https://images.unsplash.com/photo-1588693273928-92fa26159c88?q=80&w=1635',
-      date: 'Last week',
-      venue: 'The Old Globe',
-    },
-    likes: 45,
-    comments: 7,
-    isLiked: false,
-  },
-];
+const fetchPosts = async (userId?: string) => {
+  let query = supabase
+    .from('ticket_posts')
+    .select(`
+      *,
+      profile:profiles(username, full_name, avatar_url),
+      likes_count:post_likes(count),
+      comments_count:post_comments(count)
+    `)
+    .order('created_at', { ascending: false });
+  
+  const { data, error } = await query;
+  
+  if (error) {
+    console.error('Error fetching posts:', error);
+    throw error;
+  }
+  
+  // If a user is logged in, check which posts they've liked
+  if (userId) {
+    const { data: likedPosts, error: likesError } = await supabase
+      .from('post_likes')
+      .select('post_id')
+      .eq('user_id', userId);
+    
+    if (!likesError && likedPosts) {
+      // Mark posts that the user has liked
+      const likedPostIds = new Set(likedPosts.map(like => like.post_id));
+      data.forEach(post => {
+        post.user_has_liked = likedPostIds.has(post.id);
+      });
+    }
+  }
+  
+  return data as Post[];
+};
 
 export const Feed = () => {
+  const { user } = useAuth();
+  
+  const { data: posts, isLoading, error } = useQuery({
+    queryKey: ['posts', user?.id],
+    queryFn: () => fetchPosts(user?.id),
+  });
+  
+  if (isLoading) {
+    return (
+      <div className="space-y-4 py-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="w-full rounded-lg border border-gray-200 shadow">
+            <div className="p-4">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div>
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3 w-32 mt-1" />
+                </div>
+              </div>
+            </div>
+            <Skeleton className="h-48 w-full" />
+            <div className="p-4">
+              <Skeleton className="h-5 w-36 mb-2" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-red-500">Error loading posts. Please try again later.</p>
+      </div>
+    );
+  }
+  
+  if (!posts || posts.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-muted-foreground">No posts yet. Be the first to share!</p>
+      </div>
+    );
+  }
+  
   return (
     <div className="space-y-4 py-4">
-      {dummyData.map((post) => (
-        <TicketCard key={post.id} {...post} />
+      {posts.map((post) => (
+        <TicketCard 
+          key={post.id}
+          id={post.id}
+          user={{
+            id: post.user_id,
+            name: post.profile?.full_name || post.profile?.username || 'Unknown User',
+            avatar: post.profile?.avatar_url || 'https://i.pravatar.cc/150?img=1',
+            initials: (post.profile?.username || 'UN').substring(0, 2).toUpperCase(),
+          }}
+          event={{
+            title: post.title,
+            type: post.event_type,
+            image: post.image_url,
+            date: new Date(post.event_date).toLocaleString(),
+            venue: post.venue,
+          }}
+          likes={post.likes_count || 0}
+          comments={post.comments_count || 0}
+          isLiked={post.user_has_liked || false}
+        />
       ))}
     </div>
   );

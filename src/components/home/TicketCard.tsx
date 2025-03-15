@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,11 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { FollowButton } from './FollowButton';
 import { FollowStats } from './FollowStats';
-import { users } from '@/utils/userUtils';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 interface TicketCardProps {
   id: string;
   user: {
+    id: string;
     name: string;
     avatar: string;
     initials: string;
@@ -39,21 +43,58 @@ export const TicketCard = ({
 }: TicketCardProps) => {
   const [liked, setLiked] = useState(isLiked);
   const [likeCount, setLikeCount] = useState(likes);
+  const { user: currentUser } = useAuth();
+  const queryClient = useQueryClient();
   
-  // Find matching user for follow stats
-  const userData = Object.values(users).find(u => u.name === user.name) || {
-    id: id,
-    followingCount: 0,
-    followersCount: 0
-  };
+  const likeMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentUser) {
+        throw new Error('You must be logged in to like a post');
+      }
+      
+      if (!liked) {
+        // Like the post
+        const { error } = await supabase
+          .from('post_likes')
+          .insert([{ post_id: id, user_id: currentUser.id }]);
+          
+        if (error) throw error;
+      } else {
+        // Unlike the post
+        const { error } = await supabase
+          .from('post_likes')
+          .delete()
+          .eq('post_id', id)
+          .eq('user_id', currentUser.id);
+          
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      // Toggle liked state and update count locally
+      if (liked) {
+        setLikeCount(prev => prev - 1);
+      } else {
+        setLikeCount(prev => prev + 1);
+      }
+      setLiked(!liked);
+      
+      // Invalidate posts query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+    onError: (error) => {
+      console.error('Error toggling like:', error);
+      toast.error('Failed to update like status');
+    }
+  });
 
   const handleLike = () => {
-    if (liked) {
-      setLikeCount(prev => prev - 1);
-    } else {
-      setLikeCount(prev => prev + 1);
+    if (!currentUser) {
+      toast.error('Please sign in to like posts');
+      return;
     }
-    setLiked(!liked);
+    
+    likeMutation.mutate();
   };
 
   const getEventTypeColor = (type: string) => {
@@ -84,16 +125,14 @@ export const TicketCard = ({
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium">{user.name}</p>
                 <FollowStats 
-                  userId={userData.id} 
-                  followingCount={userData.followingCount} 
-                  followersCount={userData.followersCount}
+                  userId={user.id}
                 />
               </div>
               <p className="text-xs text-muted-foreground">checked in at {event.venue}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <FollowButton userId={userData.id} compact={true} />
+            <FollowButton userId={user.id} compact={true} />
             <Badge className={cn("capitalize", getEventTypeColor(event.type))}>
               {event.type}
             </Badge>
@@ -123,6 +162,7 @@ export const TicketCard = ({
               liked && "text-red-500 hover:text-red-600"
             )}
             onClick={handleLike}
+            disabled={likeMutation.isPending}
           >
             <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} />
             <span>{likeCount}</span>
