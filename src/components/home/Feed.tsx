@@ -7,6 +7,70 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// Mock posts data to show when no real posts exist
+const mockPosts: Post[] = [
+  {
+    id: 'mock-1',
+    user_id: 'mock-user-1',
+    title: 'Hamilton on Broadway',
+    event_type: 'musical',
+    image_url: 'https://images.unsplash.com/photo-1460723237783-e82e7bf94c31?q=80&w=1200',
+    event_date: new Date().toISOString(),
+    venue: 'Richard Rodgers Theatre',
+    content: 'Amazing performance! The cast was incredible.',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    profile: {
+      username: 'theatergeek',
+      full_name: 'Taylor Smith',
+      avatar_url: 'https://i.pravatar.cc/150?img=3',
+    },
+    likes_count: 42,
+    comments_count: 12,
+    user_has_liked: false
+  },
+  {
+    id: 'mock-2',
+    user_id: 'mock-user-2',
+    title: 'Coldplay World Tour',
+    event_type: 'concert',
+    image_url: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=1200',
+    event_date: new Date().toISOString(),
+    venue: 'Madison Square Garden',
+    content: 'Best concert ever! The light show was spectacular.',
+    created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+    updated_at: new Date(Date.now() - 86400000).toISOString(),
+    profile: {
+      username: 'musiclover',
+      full_name: 'Alex Johnson',
+      avatar_url: 'https://i.pravatar.cc/150?img=8',
+    },
+    likes_count: 76,
+    comments_count: 24,
+    user_has_liked: false
+  },
+  {
+    id: 'mock-3',
+    user_id: 'mock-user-3',
+    title: 'Oppenheimer',
+    event_type: 'movie',
+    image_url: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1200',
+    event_date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+    venue: 'AMC Empire 25',
+    content: 'Incredible film! Christopher Nolan at his best.',
+    created_at: new Date(Date.now() - 172800000).toISOString(),
+    updated_at: new Date(Date.now() - 172800000).toISOString(),
+    profile: {
+      username: 'cinemabuff',
+      full_name: 'Jordan Lee',
+      avatar_url: 'https://i.pravatar.cc/150?img=12',
+    },
+    likes_count: 104,
+    comments_count: 36,
+    user_has_liked: false
+  }
+];
+
 const fetchPosts = async (userId?: string) => {
   // First, fetch all posts
   const { data: postsData, error: postsError } = await supabase
@@ -119,17 +183,12 @@ export const Feed = () => {
     );
   }
   
-  if (!posts || posts.length === 0) {
-    return (
-      <div className="py-8 text-center">
-        <p className="text-muted-foreground">No posts yet. Be the first to share!</p>
-      </div>
-    );
-  }
+  // If no posts from the database, use mock posts instead
+  const displayPosts = (!posts || posts.length === 0) ? mockPosts : posts;
   
   return (
     <div className="space-y-4 py-4">
-      {posts.map((post) => (
+      {displayPosts.map((post) => (
         <TicketCard 
           key={post.id}
           id={post.id}
