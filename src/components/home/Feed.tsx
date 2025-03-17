@@ -8,24 +8,42 @@ import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const fetchPosts = async (userId?: string) => {
-  let query = supabase
+  // First, fetch all posts
+  const { data: postsData, error: postsError } = await supabase
     .from('ticket_posts')
     .select(`
       *,
-      profile:profiles(username, full_name, avatar_url),
       likes_count:post_likes(count),
       comments_count:post_comments(count)
     `)
     .order('created_at', { ascending: false });
   
-  const { data, error } = await query;
-  
-  if (error) {
-    console.error('Error fetching posts:', error);
-    throw error;
+  if (postsError) {
+    console.error('Error fetching posts:', postsError);
+    throw postsError;
   }
   
+  // Fetch profiles for the user_ids in the posts
+  const userIds = [...new Set(postsData.map(post => post.user_id))];
+  
+  const { data: profilesData, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, username, full_name, avatar_url')
+    .in('id', userIds);
+  
+  if (profilesError) {
+    console.error('Error fetching profiles:', profilesError);
+    throw profilesError;
+  }
+  
+  // Create a map of profiles by user_id for quick lookup
+  const profilesMap = new Map();
+  profilesData?.forEach(profile => {
+    profilesMap.set(profile.id, profile);
+  });
+  
   // If a user is logged in, check which posts they've liked
+  let likedPostIds = new Set();
   if (userId) {
     const { data: likedPosts, error: likesError } = await supabase
       .from('post_likes')
@@ -33,15 +51,31 @@ const fetchPosts = async (userId?: string) => {
       .eq('user_id', userId);
     
     if (!likesError && likedPosts) {
-      // Mark posts that the user has liked
-      const likedPostIds = new Set(likedPosts.map(like => like.post_id));
-      data.forEach(post => {
-        post.user_has_liked = likedPostIds.has(post.id);
-      });
+      likedPostIds = new Set(likedPosts.map(like => like.post_id));
     }
   }
   
-  return data as Post[];
+  // Combine the data into the format expected by the Post type
+  const posts = postsData.map(post => {
+    const profile = profilesMap.get(post.user_id);
+    return {
+      ...post,
+      profile: profile ? {
+        username: profile.username || 'Unknown',
+        full_name: profile.full_name,
+        avatar_url: profile.avatar_url
+      } : {
+        username: 'Unknown User',
+        full_name: null,
+        avatar_url: null
+      },
+      likes_count: post.likes_count.length,
+      comments_count: post.comments_count.length,
+      user_has_liked: likedPostIds.has(post.id) || false
+    };
+  });
+  
+  return posts as Post[];
 };
 
 export const Feed = () => {
