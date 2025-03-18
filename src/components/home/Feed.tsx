@@ -8,6 +8,8 @@ import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const fetchPosts = async (userId?: string) => {
+  console.log('Fetching posts with userId:', userId);
+  
   // First, fetch all posts
   const { data: postsData, error: postsError } = await supabase
     .from('ticket_posts')
@@ -22,25 +24,30 @@ const fetchPosts = async (userId?: string) => {
     console.error('Error fetching posts:', postsError);
     throw postsError;
   }
+
+  console.log('Posts data from DB:', postsData);
   
   // Fetch profiles for the user_ids in the posts
-  const userIds = [...new Set(postsData.map(post => post.user_id))];
+  const userIds = postsData.length > 0 ? [...new Set(postsData.map(post => post.user_id))] : [];
   
-  const { data: profilesData, error: profilesError } = await supabase
-    .from('profiles')
-    .select('id, username, full_name, avatar_url')
-    .in('id', userIds);
+  let profilesMap = new Map();
   
-  if (profilesError) {
-    console.error('Error fetching profiles:', profilesError);
-    throw profilesError;
+  if (userIds.length > 0) {
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, username, full_name, avatar_url')
+      .in('id', userIds);
+    
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+      throw profilesError;
+    }
+    
+    // Create a map of profiles by user_id for quick lookup
+    profilesData?.forEach(profile => {
+      profilesMap.set(profile.id, profile);
+    });
   }
-  
-  // Create a map of profiles by user_id for quick lookup
-  const profilesMap = new Map();
-  profilesData?.forEach(profile => {
-    profilesMap.set(profile.id, profile);
-  });
   
   // If a user is logged in, check which posts they've liked
   let likedPostIds = new Set();
@@ -69,12 +76,13 @@ const fetchPosts = async (userId?: string) => {
         full_name: null,
         avatar_url: null
       },
-      likes_count: post.likes_count.length,
-      comments_count: post.comments_count.length,
+      likes_count: post.likes_count?.length || 0,
+      comments_count: post.comments_count?.length || 0,
       user_has_liked: likedPostIds.has(post.id) || false
     };
   });
   
+  console.log('Processed posts:', posts);
   return posts as Post[];
 };
 
@@ -112,9 +120,13 @@ export const Feed = () => {
   }
   
   if (error) {
+    console.error("Feed error:", error);
     return (
       <div className="py-8 text-center">
         <p className="text-red-500">Error loading posts. Please try again later.</p>
+        <pre className="text-xs mt-2 text-left bg-gray-100 p-2 rounded overflow-auto">
+          {JSON.stringify(error, null, 2)}
+        </pre>
       </div>
     );
   }
@@ -135,16 +147,16 @@ export const Feed = () => {
           id={post.id}
           user={{
             id: post.user_id,
-            name: post.profile?.username || 'Unknown User', // Changed from full_name to username for privacy
+            name: post.profile?.username || 'Unknown User',
             avatar: post.profile?.avatar_url || 'https://i.pravatar.cc/150?img=1',
             initials: (post.profile?.username || 'UN').substring(0, 2).toUpperCase(),
           }}
           event={{
             title: post.title,
-            type: post.event_type,
-            image: post.image_url,
-            date: new Date(post.event_date).toLocaleString(),
-            venue: post.venue,
+            type: (post.event_type as 'movie' | 'concert' | 'musical' | 'theater' | 'other') || 'other',
+            image: post.image_url || 'https://via.placeholder.com/400x300',
+            date: post.event_date ? new Date(post.event_date).toLocaleString() : 'Unknown date',
+            venue: post.venue || 'Unknown venue',
           }}
           likes={post.likes_count || 0}
           comments={post.comments_count || 0}
