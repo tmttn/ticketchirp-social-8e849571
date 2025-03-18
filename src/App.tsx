@@ -9,6 +9,8 @@ import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Scan from "./pages/Scan";
 import NotFound from "./pages/NotFound";
+import PostDetail from "./pages/PostDetail";
+import UserProfile from "./pages/UserProfile";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +25,8 @@ const App = () => (
             <Route path="/" element={<Home />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/scan" element={<Scan />} />
+            <Route path="/post/:id" element={<PostDetail />} />
+            <Route path="/profile/:id" element={<UserProfile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
