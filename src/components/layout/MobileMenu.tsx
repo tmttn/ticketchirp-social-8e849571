@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Home, Ticket, Scan, User, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 
 interface MobileMenuProps {
   signOut: () => Promise<void>;
@@ -9,6 +10,7 @@ interface MobileMenuProps {
 
 export const MobileMenu = ({ signOut }: MobileMenuProps) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const menuItems = [
     { icon: Home, label: 'Home', path: '/' },

@@ -11,6 +11,9 @@ import Scan from "./pages/Scan";
 import NotFound from "./pages/NotFound";
 import PostDetail from "./pages/PostDetail";
 import UserProfile from "./pages/UserProfile";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
+import MyTickets from "./pages/MyTickets";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +30,9 @@ const App = () => (
             <Route path="/scan" element={<Scan />} />
             <Route path="/post/:id" element={<PostDetail />} />
             <Route path="/profile/:id" element={<UserProfile />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/tickets" element={<MyTickets />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
