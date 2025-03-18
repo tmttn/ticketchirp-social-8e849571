@@ -12,6 +12,9 @@ import { ArrowLeft, Users } from 'lucide-react';
 import { TicketCard } from '@/components/home/TicketCard';
 import { toast } from 'sonner';
 
+// Define the acceptable event types to match what TicketCard expects
+type EventType = 'movie' | 'concert' | 'musical' | 'theater' | 'other';
+
 const UserProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -266,10 +269,11 @@ const UserProfile = () => {
               }}
               event={{
                 title: post.title,
-                type: post.event_type,
-                image: post.image_url,
-                date: new Date(post.event_date).toLocaleString(),
-                venue: post.venue,
+                // Here's the fix: Convert string to valid EventType
+                type: (post.event_type as EventType) || 'other',
+                image: post.image_url || '',
+                date: new Date(post.event_date || '').toLocaleString(),
+                venue: post.venue || '',
               }}
               likes={post.likes_count || 0}
               comments={post.comments_count || 0}
