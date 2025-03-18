@@ -12,7 +12,31 @@ const fetchPosts = async (userId?: string) => {
   console.log('Fetching posts with userId:', userId);
   
   try {
-    // First, fetch all posts
+    if (!userId) {
+      console.log('No user ID provided for fetching posts');
+      return [];
+    }
+
+    // First, get the list of users the current user is following
+    const { data: followingData, error: followingError } = await supabase
+      .from('follows')
+      .select('following_id')
+      .eq('follower_id', userId);
+    
+    if (followingError) {
+      console.error('Error fetching following data:', followingError);
+      throw followingError;
+    }
+
+    // Extract the IDs of users being followed
+    const followingIds = followingData?.map(f => f.following_id) || [];
+    
+    // Include the current user's ID in the list of users to fetch posts from
+    const userIds = [userId, ...followingIds];
+    
+    console.log('Fetching posts for users:', userIds);
+    
+    // Fetch posts from the current user and followed users
     const { data: postsData, error: postsError } = await supabase
       .from('ticket_posts')
       .select(`
@@ -20,6 +44,7 @@ const fetchPosts = async (userId?: string) => {
         likes_count:post_likes(count),
         comments_count:post_comments(count)
       `)
+      .in('user_id', userIds)
       .order('created_at', { ascending: false });
     
     if (postsError) {
@@ -30,20 +55,20 @@ const fetchPosts = async (userId?: string) => {
     console.log('Posts data from DB:', postsData);
     
     if (!postsData || postsData.length === 0) {
-      // Return empty array if no posts
+      console.log('No posts found for the user and followed users');
       return [];
     }
     
     // Fetch profiles for the user_ids in the posts
-    const userIds = [...new Set(postsData.map(post => post.user_id))];
+    const postUserIds = [...new Set(postsData.map(post => post.user_id))];
     
     let profilesMap = new Map();
     
-    if (userIds.length > 0) {
+    if (postUserIds.length > 0) {
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, username, full_name, avatar_url')
-        .in('id', userIds);
+        .in('id', postUserIds);
       
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
@@ -56,18 +81,18 @@ const fetchPosts = async (userId?: string) => {
       });
     }
     
-    // If a user is logged in, check which posts they've liked
-    let likedPostIds = new Set();
-    if (userId) {
-      const { data: likedPosts, error: likesError } = await supabase
-        .from('post_likes')
-        .select('post_id')
-        .eq('user_id', userId);
-      
-      if (!likesError && likedPosts) {
-        likedPostIds = new Set(likedPosts.map(like => like.post_id));
-      }
+    // Check which posts the current user has liked
+    const { data: likedPosts, error: likesError } = await supabase
+      .from('post_likes')
+      .select('post_id')
+      .eq('user_id', userId);
+    
+    if (likesError) {
+      console.error('Error fetching liked posts:', likesError);
+      throw likesError;
     }
+    
+    const likedPostIds = new Set(likedPosts?.map(like => like.post_id) || []);
     
     // Combine the data into the format expected by the Post type
     const posts = postsData.map(post => {
@@ -105,6 +130,7 @@ export const Feed = () => {
     queryFn: () => fetchPosts(user?.id),
     retry: 3,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!user?.id, // Only run the query if we have a user ID
     onError: (err) => {
       console.error('Feed query error:', err);
       toast.error('Failed to load posts. Please try again.');
@@ -116,6 +142,14 @@ export const Feed = () => {
     console.log('Feed rendering with user ID:', user?.id);
     console.log('Current posts state:', posts);
   }, [user?.id, posts]);
+  
+  if (!user) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-muted-foreground">Please sign in to view your feed.</p>
+      </div>
+    );
+  }
   
   if (isLoading) {
     return (
@@ -147,9 +181,6 @@ export const Feed = () => {
     return (
       <div className="py-8 text-center">
         <p className="text-red-500">Error loading posts. Please try again later.</p>
-        <pre className="text-xs mt-2 text-left bg-gray-100 p-2 rounded overflow-auto">
-          {JSON.stringify(error, null, 2)}
-        </pre>
       </div>
     );
   }
