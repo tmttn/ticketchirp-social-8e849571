@@ -5,9 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { Ticket } from "lucide-react";
+import { useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 const Home = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  // Debug log to check auth state
+  useEffect(() => {
+    console.log('Home page rendered with auth state:', user ? 'Logged in' : 'Not logged in');
+    if (user) {
+      console.log('User ID:', user.id);
+    }
+  }, [user]);
   
   return (
     <div className="min-h-screen flex flex-col">

@@ -6,84 +6,95 @@ import { Post } from '@/types/post';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 const fetchPosts = async (userId?: string) => {
   console.log('Fetching posts with userId:', userId);
   
-  // First, fetch all posts
-  const { data: postsData, error: postsError } = await supabase
-    .from('ticket_posts')
-    .select(`
-      *,
-      likes_count:post_likes(count),
-      comments_count:post_comments(count)
-    `)
-    .order('created_at', { ascending: false });
-  
-  if (postsError) {
-    console.error('Error fetching posts:', postsError);
-    throw postsError;
-  }
+  try {
+    // First, fetch all posts
+    const { data: postsData, error: postsError } = await supabase
+      .from('ticket_posts')
+      .select(`
+        *,
+        likes_count:post_likes(count),
+        comments_count:post_comments(count)
+      `)
+      .order('created_at', { ascending: false });
+    
+    if (postsError) {
+      console.error('Error fetching posts:', postsError);
+      throw postsError;
+    }
 
-  console.log('Posts data from DB:', postsData);
-  
-  // Fetch profiles for the user_ids in the posts
-  const userIds = postsData.length > 0 ? [...new Set(postsData.map(post => post.user_id))] : [];
-  
-  let profilesMap = new Map();
-  
-  if (userIds.length > 0) {
-    const { data: profilesData, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, username, full_name, avatar_url')
-      .in('id', userIds);
+    console.log('Posts data from DB:', postsData);
     
-    if (profilesError) {
-      console.error('Error fetching profiles:', profilesError);
-      throw profilesError;
+    if (!postsData || postsData.length === 0) {
+      // Return empty array if no posts
+      return [];
     }
     
-    // Create a map of profiles by user_id for quick lookup
-    profilesData?.forEach(profile => {
-      profilesMap.set(profile.id, profile);
+    // Fetch profiles for the user_ids in the posts
+    const userIds = [...new Set(postsData.map(post => post.user_id))];
+    
+    let profilesMap = new Map();
+    
+    if (userIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url')
+        .in('id', userIds);
+      
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+      
+      // Create a map of profiles by user_id for quick lookup
+      profilesData?.forEach(profile => {
+        profilesMap.set(profile.id, profile);
+      });
+    }
+    
+    // If a user is logged in, check which posts they've liked
+    let likedPostIds = new Set();
+    if (userId) {
+      const { data: likedPosts, error: likesError } = await supabase
+        .from('post_likes')
+        .select('post_id')
+        .eq('user_id', userId);
+      
+      if (!likesError && likedPosts) {
+        likedPostIds = new Set(likedPosts.map(like => like.post_id));
+      }
+    }
+    
+    // Combine the data into the format expected by the Post type
+    const posts = postsData.map(post => {
+      const profile = profilesMap.get(post.user_id);
+      return {
+        ...post,
+        profile: profile ? {
+          username: profile.username || 'Unknown',
+          full_name: profile.full_name,
+          avatar_url: profile.avatar_url
+        } : {
+          username: 'Unknown User',
+          full_name: null,
+          avatar_url: null
+        },
+        likes_count: post.likes_count?.length || 0,
+        comments_count: post.comments_count?.length || 0,
+        user_has_liked: likedPostIds.has(post.id) || false
+      };
     });
-  }
-  
-  // If a user is logged in, check which posts they've liked
-  let likedPostIds = new Set();
-  if (userId) {
-    const { data: likedPosts, error: likesError } = await supabase
-      .from('post_likes')
-      .select('post_id')
-      .eq('user_id', userId);
     
-    if (!likesError && likedPosts) {
-      likedPostIds = new Set(likedPosts.map(like => like.post_id));
-    }
+    console.log('Processed posts:', posts);
+    return posts as Post[];
+  } catch (error) {
+    console.error('Error in fetchPosts:', error);
+    throw error;
   }
-  
-  // Combine the data into the format expected by the Post type
-  const posts = postsData.map(post => {
-    const profile = profilesMap.get(post.user_id);
-    return {
-      ...post,
-      profile: profile ? {
-        username: profile.username || 'Unknown',
-        full_name: profile.full_name,
-        avatar_url: profile.avatar_url
-      } : {
-        username: 'Unknown User',
-        full_name: null,
-        avatar_url: null
-      },
-      likes_count: post.likes_count?.length || 0,
-      comments_count: post.comments_count?.length || 0,
-      user_has_liked: likedPostIds.has(post.id) || false
-    };
-  });
-  
-  console.log('Processed posts:', posts);
-  return posts as Post[];
 };
 
 export const Feed = () => {
@@ -92,7 +103,19 @@ export const Feed = () => {
   const { data: posts, isLoading, error } = useQuery({
     queryKey: ['posts', user?.id],
     queryFn: () => fetchPosts(user?.id),
+    retry: 3,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    onError: (err) => {
+      console.error('Feed query error:', err);
+      toast.error('Failed to load posts. Please try again.');
+    }
   });
+  
+  // Add debug effect to log render cycles
+  useEffect(() => {
+    console.log('Feed rendering with user ID:', user?.id);
+    console.log('Current posts state:', posts);
+  }, [user?.id, posts]);
   
   if (isLoading) {
     return (
