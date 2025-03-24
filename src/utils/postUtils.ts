@@ -115,3 +115,62 @@ export const fetchPosts = async (userId?: string): Promise<Post[]> => {
     throw error;
   }
 };
+
+export const addComment = async (postId: string, userId: string, content: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('post_comments')
+      .insert([
+        { post_id: postId, user_id: userId, content }
+      ]);
+    
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error adding comment:', error);
+    throw error;
+  }
+};
+
+export const fetchComments = async (postId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('post_comments')
+      .select(`
+        *,
+        profiles:user_id(username, full_name, avatar_url)
+      `)
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true });
+    
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    throw error;
+  }
+};
+
+export const toggleLike = async (postId: string, userId: string, isLiked: boolean): Promise<void> => {
+  try {
+    if (isLiked) {
+      // Unlike the post
+      const { error } = await supabase
+        .from('post_likes')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+    } else {
+      // Like the post
+      const { error } = await supabase
+        .from('post_likes')
+        .insert([{ post_id: postId, user_id: userId }]);
+      
+      if (error) throw error;
+    }
+  } catch (error) {
+    console.error('Error toggling like:', error);
+    throw error;
+  }
+};

@@ -12,6 +12,8 @@ import { FollowStats } from './FollowStats';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { toggleLike } from '@/utils/postUtils';
 
 interface TicketCardProps {
   id: string;
@@ -45,6 +47,7 @@ export const TicketCard = ({
   const [likeCount, setLikeCount] = useState(likes);
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
   const likeMutation = useMutation({
     mutationFn: async () => {
@@ -52,23 +55,7 @@ export const TicketCard = ({
         throw new Error('You must be logged in to like a post');
       }
       
-      if (!liked) {
-        // Like the post
-        const { error } = await supabase
-          .from('post_likes')
-          .insert([{ post_id: id, user_id: currentUser.id }]);
-          
-        if (error) throw error;
-      } else {
-        // Unlike the post
-        const { error } = await supabase
-          .from('post_likes')
-          .delete()
-          .eq('post_id', id)
-          .eq('user_id', currentUser.id);
-          
-        if (error) throw error;
-      }
+      await toggleLike(id, currentUser.id, liked);
     },
     onSuccess: () => {
       // Toggle liked state and update count locally
@@ -95,6 +82,31 @@ export const TicketCard = ({
     }
     
     likeMutation.mutate();
+  };
+  
+  const handleOpenPost = () => {
+    navigate(`/post/${id}`);
+  };
+  
+  const handleShare = async () => {
+    try {
+      const shareUrl = `${window.location.origin}/post/${id}`;
+      
+      if (navigator.share) {
+        await navigator.share({
+          title: event.title,
+          text: `Check out this ${event.type} event: ${event.title}`,
+          url: shareUrl,
+        });
+      } else {
+        // Fallback for browsers that don't support Web Share API
+        navigator.clipboard.writeText(shareUrl);
+        toast.success('Link copied to clipboard');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast.error('Failed to share post');
+    }
   };
 
   const getEventTypeColor = (type: string) => {
@@ -140,7 +152,10 @@ export const TicketCard = ({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="relative aspect-[4/3] w-full overflow-hidden">
+        <div 
+          className="relative aspect-[4/3] w-full overflow-hidden cursor-pointer"
+          onClick={handleOpenPost}
+        >
           <img
             src={event.image}
             alt={event.title}
@@ -167,12 +182,22 @@ export const TicketCard = ({
             <Heart className="h-4 w-4" fill={liked ? "currentColor" : "none"} />
             <span>{likeCount}</span>
           </Button>
-          <Button variant="ghost" size="sm" className="flex gap-1 px-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="flex gap-1 px-2"
+            onClick={handleOpenPost}
+          >
             <MessageCircle className="h-4 w-4" />
             <span>{comments}</span>
           </Button>
         </div>
-        <Button variant="ghost" size="sm" className="px-2">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="px-2"
+          onClick={handleShare}
+        >
           <Share2 className="h-4 w-4" />
         </Button>
       </CardFooter>
