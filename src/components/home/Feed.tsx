@@ -131,9 +131,16 @@ export const Feed = () => {
     retry: 3,
     staleTime: 1000 * 60 * 5, // 5 minutes
     enabled: !!user?.id, // Only run the query if we have a user ID
-    onError: (err) => {
-      console.error('Feed query error:', err);
-      toast.error('Failed to load posts. Please try again.');
+    // Using the correct error handling for React Query v5
+    meta: {
+      errorMessage: 'Failed to load posts'
+    },
+    // onSettled can be used to handle both success and error cases
+    onSettled: (data, error) => {
+      if (error) {
+        console.error('Feed query error:', error);
+        toast.error('Failed to load posts. Please try again.');
+      }
     }
   });
   
