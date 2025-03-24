@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { TicketCard } from './TicketCard';
@@ -131,20 +130,15 @@ export const Feed = () => {
     retry: 3,
     staleTime: 1000 * 60 * 5, // 5 minutes
     enabled: !!user?.id, // Only run the query if we have a user ID
-    // Using the correct error handling for React Query v5
     meta: {
       errorMessage: 'Failed to load posts'
     },
-    // onSettled can be used to handle both success and error cases
-    onSettled: (data, error) => {
-      if (error) {
-        console.error('Feed query error:', error);
-        toast.error('Failed to load posts. Please try again.');
-      }
+    onError: (error) => {
+      console.error('Feed query error:', error);
+      toast.error('Failed to load posts. Please try again.');
     }
   });
   
-  // Add debug effect to log render cycles
   useEffect(() => {
     console.log('Feed rendering with user ID:', user?.id);
     console.log('Current posts state:', posts);
