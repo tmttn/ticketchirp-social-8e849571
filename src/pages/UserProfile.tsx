@@ -210,12 +210,12 @@ const UserProfile = () => {
       <Card className="mb-8">
         <CardContent className="pt-6 pb-6">
           <div className="flex flex-col items-center">
-            <Avatar className="h-24 w-24 mb-4">
-              <img 
-                src={profile.avatar_url || 'https://i.pravatar.cc/150?img=1'} 
-                alt={profile.username} 
-              />
-            </Avatar>
+            <AvatarUpload 
+              avatarUrl={profile.avatar_url}
+              username={profile.username}
+              size="lg"
+              className="mb-4"
+            />
             
             <h1 className="text-2xl font-bold mb-1">@{profile.username}</h1>
             

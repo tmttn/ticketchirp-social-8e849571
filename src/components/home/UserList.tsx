@@ -1,9 +1,9 @@
 
 import { useNavigate } from "react-router-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FollowButton } from "./FollowButton";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import { AvatarUpload } from "../profile/AvatarUpload";
 
 interface Profile {
   id: string;
@@ -64,27 +64,24 @@ export const UserList = ({ users, isLoading }: UserListProps) => {
   
   return (
     <div className="space-y-4">
-      {users.map(user => {
-        const initials = user.username?.substring(0, 2).toUpperCase() || 'U';
-        
-        return (
-          <div key={user.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={user.avatar_url || undefined} alt={user.username} />
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-medium">{user.full_name || user.username}</p>
-                <p className="text-xs text-muted-foreground">
-                  @{user.username}
-                </p>
-              </div>
+      {users.map(profile => (
+        <div key={profile.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
+          <div className="flex items-center gap-3">
+            <AvatarUpload
+              avatarUrl={profile.avatar_url}
+              username={profile.username}
+              size="sm"
+            />
+            <div>
+              <p className="font-medium">{profile.full_name || profile.username}</p>
+              <p className="text-xs text-muted-foreground">
+                @{profile.username}
+              </p>
             </div>
-            <FollowButton userId={user.id} />
           </div>
-        );
-      })}
+          <FollowButton userId={profile.id} />
+        </div>
+      ))}
     </div>
   );
 };

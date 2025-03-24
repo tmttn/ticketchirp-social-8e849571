@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Avatar } from '@/components/ui/avatar';
 import { ArrowLeft, User, Ticket, Settings as SettingsIcon, LogOut } from 'lucide-react';
+import { AvatarUpload } from '@/components/profile/AvatarUpload';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -57,12 +57,12 @@ const Profile = () => {
       <Card className="mb-8">
         <CardHeader className="pb-4">
           <div className="flex flex-col items-center">
-            <Avatar className="h-24 w-24 mb-4">
-              <img 
-                src={profile?.avatar_url || 'https://i.pravatar.cc/150?img=1'} 
-                alt={profile?.username || 'Profile'} 
-              />
-            </Avatar>
+            <AvatarUpload 
+              avatarUrl={profile?.avatar_url}
+              username={profile?.username}
+              size="lg"
+              className="mb-4"
+            />
             
             <h1 className="text-2xl font-bold">@{profile?.username || 'User'}</h1>
             <p className="text-muted-foreground">{profile?.full_name || ''}</p>

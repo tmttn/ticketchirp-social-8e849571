@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { ArrowLeft, Save } from 'lucide-react';
+import { AvatarUpload } from '@/components/profile/AvatarUpload';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -73,6 +74,15 @@ const Settings = () => {
         
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            <div className="flex justify-center mb-4">
+              <AvatarUpload 
+                avatarUrl={avatarUrl} 
+                username={username}
+                size="lg"
+                onAvatarChange={(url) => setAvatarUrl(url)}
+              />
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input 
@@ -90,16 +100,6 @@ const Settings = () => {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Your full name"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="avatarUrl">Avatar URL</Label>
-              <Input 
-                id="avatarUrl"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                placeholder="https://example.com/avatar.jpg"
               />
             </div>
             

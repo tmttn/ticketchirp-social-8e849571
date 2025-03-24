@@ -1,12 +1,12 @@
 
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, Plus, Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { MobileMenu } from './MobileMenu';
 import { Logo } from '../ui/Logo';
 import { useAuth } from '@/context/AuthContext';
+import { AvatarUpload } from '../profile/AvatarUpload';
 
 export const Navbar = () => {
   const navigate = useNavigate();
@@ -53,12 +53,13 @@ export const Navbar = () => {
               </SheetContent>
             </Sheet>
             
-            <Avatar className="cursor-pointer" onClick={() => navigate('/profile')}>
-              <AvatarImage src={profile?.avatar_url || "https://github.com/shadcn.png"} />
-              <AvatarFallback>
-                {profile?.username?.substring(0, 2).toUpperCase() || user.email?.substring(0, 2).toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
+            <div className="cursor-pointer" onClick={() => navigate('/profile')}>
+              <AvatarUpload 
+                avatarUrl={profile?.avatar_url} 
+                username={profile?.username}
+                size="sm"
+              />
+            </div>
           </div>
         ) : (
           <div className="flex items-center gap-2">
