@@ -1,125 +1,12 @@
-import { useEffect, useState } from 'react';
+
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { TicketCard } from './TicketCard';
-import { Post } from '@/types/post';
-import { supabase } from '@/integrations/supabase/client';
+import { FeedSkeleton } from './FeedSkeleton';
+import { EmptyFeed } from './EmptyFeed';
 import { useAuth } from '@/context/AuthContext';
-import { Skeleton } from '@/components/ui/skeleton';
+import { fetchPosts } from '@/utils/postUtils';
 import { toast } from 'sonner';
-
-const fetchPosts = async (userId?: string) => {
-  console.log('Fetching posts with userId:', userId);
-  
-  try {
-    if (!userId) {
-      console.log('No user ID provided for fetching posts');
-      return [];
-    }
-
-    // First, get the list of users the current user is following
-    const { data: followingData, error: followingError } = await supabase
-      .from('follows')
-      .select('following_id')
-      .eq('follower_id', userId);
-    
-    if (followingError) {
-      console.error('Error fetching following data:', followingError);
-      throw followingError;
-    }
-
-    // Extract the IDs of users being followed
-    const followingIds = followingData?.map(f => f.following_id) || [];
-    
-    // Include the current user's ID in the list of users to fetch posts from
-    const userIds = [userId, ...followingIds];
-    
-    console.log('Fetching posts for users:', userIds);
-    
-    // Fetch posts from the current user and followed users
-    const { data: postsData, error: postsError } = await supabase
-      .from('ticket_posts')
-      .select(`
-        *,
-        likes_count:post_likes(count),
-        comments_count:post_comments(count)
-      `)
-      .in('user_id', userIds)
-      .order('created_at', { ascending: false });
-    
-    if (postsError) {
-      console.error('Error fetching posts:', postsError);
-      throw postsError;
-    }
-
-    console.log('Posts data from DB:', postsData);
-    
-    if (!postsData || postsData.length === 0) {
-      console.log('No posts found for the user and followed users');
-      return [];
-    }
-    
-    // Fetch profiles for the user_ids in the posts
-    const postUserIds = [...new Set(postsData.map(post => post.user_id))];
-    
-    let profilesMap = new Map();
-    
-    if (postUserIds.length > 0) {
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, username, full_name, avatar_url')
-        .in('id', postUserIds);
-      
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        throw profilesError;
-      }
-      
-      // Create a map of profiles by user_id for quick lookup
-      profilesData?.forEach(profile => {
-        profilesMap.set(profile.id, profile);
-      });
-    }
-    
-    // Check which posts the current user has liked
-    const { data: likedPosts, error: likesError } = await supabase
-      .from('post_likes')
-      .select('post_id')
-      .eq('user_id', userId);
-    
-    if (likesError) {
-      console.error('Error fetching liked posts:', likesError);
-      throw likesError;
-    }
-    
-    const likedPostIds = new Set(likedPosts?.map(like => like.post_id) || []);
-    
-    // Combine the data into the format expected by the Post type
-    const posts = postsData.map(post => {
-      const profile = profilesMap.get(post.user_id);
-      return {
-        ...post,
-        profile: profile ? {
-          username: profile.username || 'Unknown',
-          full_name: profile.full_name,
-          avatar_url: profile.avatar_url
-        } : {
-          username: 'Unknown User',
-          full_name: null,
-          avatar_url: null
-        },
-        likes_count: post.likes_count?.length || 0,
-        comments_count: post.comments_count?.length || 0,
-        user_has_liked: likedPostIds.has(post.id) || false
-      };
-    });
-    
-    console.log('Processed posts:', posts);
-    return posts as Post[];
-  } catch (error) {
-    console.error('Error in fetchPosts:', error);
-    throw error;
-  }
-};
 
 export const Feed = () => {
   const { user } = useAuth();
@@ -132,12 +19,16 @@ export const Feed = () => {
     enabled: !!user?.id, // Only run the query if we have a user ID
     meta: {
       errorMessage: 'Failed to load posts'
-    },
-    onError: (error) => {
+    }
+  });
+  
+  // Handle errors manually with an effect
+  useEffect(() => {
+    if (error) {
       console.error('Feed query error:', error);
       toast.error('Failed to load posts. Please try again.');
     }
-  });
+  }, [error]);
   
   useEffect(() => {
     console.log('Feed rendering with user ID:', user?.id);
@@ -145,53 +36,20 @@ export const Feed = () => {
   }, [user?.id, posts]);
   
   if (!user) {
-    return (
-      <div className="py-8 text-center">
-        <p className="text-muted-foreground">Please sign in to view your feed.</p>
-      </div>
-    );
+    return <EmptyFeed message="Please sign in to view your feed." />;
   }
   
   if (isLoading) {
-    return (
-      <div className="space-y-4 py-4">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="w-full rounded-lg border border-gray-200 shadow">
-            <div className="p-4">
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-8 w-8 rounded-full" />
-                <div>
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-32 mt-1" />
-                </div>
-              </div>
-            </div>
-            <Skeleton className="h-48 w-full" />
-            <div className="p-4">
-              <Skeleton className="h-5 w-36 mb-2" />
-              <Skeleton className="h-4 w-24" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    return <FeedSkeleton />;
   }
   
   if (error) {
     console.error("Feed error:", error);
-    return (
-      <div className="py-8 text-center">
-        <p className="text-red-500">Error loading posts. Please try again later.</p>
-      </div>
-    );
+    return <EmptyFeed message="Error loading posts. Please try again later." />;
   }
   
   if (!posts || posts.length === 0) {
-    return (
-      <div className="py-8 text-center">
-        <p className="text-muted-foreground">No posts yet. Be the first to share!</p>
-      </div>
-    );
+    return <EmptyFeed message="No posts yet. Be the first to share!" />;
   }
   
   return (
