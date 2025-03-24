@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, Plus, Menu, LogOut } from "lucide-react";
+import { Bell, Plus, Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { MobileMenu } from './MobileMenu';
 import { Logo } from '../ui/Logo';
