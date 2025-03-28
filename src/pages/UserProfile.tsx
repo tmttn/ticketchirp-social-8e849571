@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -6,13 +5,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
-import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Users } from 'lucide-react';
 import { TicketCard } from '@/components/home/TicketCard';
 import { toast } from 'sonner';
+import { AvatarUpload } from '@/components/profile/AvatarUpload';
 
-// Define the acceptable event types to match what TicketCard expects
 type EventType = 'movie' | 'concert' | 'musical' | 'theater' | 'other';
 
 const UserProfile = () => {
@@ -20,7 +18,6 @@ const UserProfile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  // Fetch user profile
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile', id],
     queryFn: async () => {
@@ -38,7 +35,6 @@ const UserProfile = () => {
     enabled: !!id,
   });
   
-  // Fetch follow counts
   const { data: followStats } = useQuery({
     queryKey: ['followStats', id],
     queryFn: async () => {
@@ -66,7 +62,6 @@ const UserProfile = () => {
     enabled: !!id,
   });
   
-  // Check if current user is following this profile
   const { data: isFollowing, refetch: refetchFollowStatus } = useQuery({
     queryKey: ['isFollowing', id, user?.id],
     queryFn: async () => {
@@ -85,7 +80,6 @@ const UserProfile = () => {
     enabled: !!(id && user),
   });
   
-  // Fetch user's posts
   const { data: userPosts, isLoading: postsLoading } = useQuery({
     queryKey: ['userPosts', id],
     queryFn: async () => {
@@ -103,7 +97,6 @@ const UserProfile = () => {
       
       if (postsError) throw postsError;
       
-      // Check if current user has liked these posts
       let likedPostIds = new Set();
       if (user) {
         const { data: likedPosts } = await supabase
@@ -144,7 +137,6 @@ const UserProfile = () => {
     
     try {
       if (isFollowing) {
-        // Unfollow
         const { error } = await supabase
           .from('follows')
           .delete()
@@ -154,7 +146,6 @@ const UserProfile = () => {
         if (error) throw error;
         toast.success(`Unfollowed @${profile?.username}`);
       } else {
-        // Follow
         const { error } = await supabase
           .from('follows')
           .insert({
@@ -269,7 +260,6 @@ const UserProfile = () => {
               }}
               event={{
                 title: post.title,
-                // Here's the fix: Convert string to valid EventType
                 type: (post.event_type as EventType) || 'other',
                 image: post.image_url || '',
                 date: new Date(post.event_date || '').toLocaleString(),
