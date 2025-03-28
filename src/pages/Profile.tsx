@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -9,10 +9,19 @@ import { AvatarUpload } from '@/components/profile/AvatarUpload';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, loading } = useAuth();
+  
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+  
+  if (loading) {
+    return <div className="container py-8 text-center">Loading...</div>;
+  }
   
   if (!user) {
-    navigate('/auth');
     return null;
   }
   

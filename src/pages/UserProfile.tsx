@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Users } from 'lucide-react';
 import { TicketCard } from '@/components/home/TicketCard';
@@ -199,43 +199,45 @@ const UserProfile = () => {
       </Button>
       
       <Card className="mb-8">
-        <CardContent className="pt-6 pb-6">
-          <div className="flex flex-col items-center">
-            <AvatarUpload 
-              avatarUrl={profile.avatar_url}
-              username={profile.username}
-              size="lg"
-              className="mb-4"
-            />
-            
-            <h1 className="text-2xl font-bold mb-1">@{profile.username}</h1>
-            
-            {profile.bio && (
-              <p className="text-muted-foreground text-center max-w-md mb-4">{profile.bio}</p>
-            )}
-            
-            <div className="flex items-center space-x-6 mb-4">
-              <div className="flex items-center">
-                <Users className="h-4 w-4 mr-2" />
-                <span className="font-medium">{followStats?.followers || 0}</span>
-                <span className="text-muted-foreground ml-1">Followers</span>
+        <CardHeader>
+          <CardContent className="pt-6 pb-6">
+            <div className="flex flex-col items-center">
+              <AvatarUpload 
+                avatarUrl={profile.avatar_url}
+                username={profile.username}
+                size="lg"
+                className="mb-4"
+              />
+              
+              <h1 className="text-2xl font-bold mb-1">@{profile.username}</h1>
+              
+              {profile.bio && (
+                <p className="text-muted-foreground text-center max-w-md mb-4">{profile.bio}</p>
+              )}
+              
+              <div className="flex items-center space-x-6 mb-4">
+                <div className="flex items-center">
+                  <Users className="h-4 w-4 mr-2" />
+                  <span className="font-medium">{followStats?.followers || 0}</span>
+                  <span className="text-muted-foreground ml-1">Followers</span>
+                </div>
+                <div>
+                  <span className="font-medium">{followStats?.following || 0}</span>
+                  <span className="text-muted-foreground ml-1">Following</span>
+                </div>
               </div>
-              <div>
-                <span className="font-medium">{followStats?.following || 0}</span>
-                <span className="text-muted-foreground ml-1">Following</span>
-              </div>
+              
+              {user && user.id !== id && (
+                <Button 
+                  variant={isFollowing ? "outline" : "default"} 
+                  onClick={toggleFollow}
+                >
+                  {isFollowing ? 'Unfollow' : 'Follow'}
+                </Button>
+              )}
             </div>
-            
-            {user && user.id !== id && (
-              <Button 
-                variant={isFollowing ? "outline" : "default"} 
-                onClick={toggleFollow}
-              >
-                {isFollowing ? 'Unfollow' : 'Follow'}
-              </Button>
-            )}
-          </div>
-        </CardContent>
+          </CardContent>
+        </CardHeader>
       </Card>
       
       <h2 className="text-xl font-bold mb-4">Posts</h2>
