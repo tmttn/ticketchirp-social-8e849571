@@ -8,6 +8,8 @@ import { Logo } from '../ui/Logo';
 export const UnauthenticatedView = () => {
   const navigate = useNavigate();
 
+  console.log('UnauthenticatedView rendering');
+  
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4">
       <div className="text-center mb-8">
